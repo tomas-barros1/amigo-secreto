@@ -11,9 +11,8 @@ import java.util.*;
 
 @Service
 public class DrawService {
-
-    private DrawRepository drawRepository;
-    private GroupRepository groupRepository;
+    private final DrawRepository drawRepository;
+    private final GroupRepository groupRepository;
 
     public DrawService(DrawRepository drawRepository, GroupRepository groupRepository) {
         this.drawRepository = drawRepository;
@@ -23,15 +22,22 @@ public class DrawService {
     public Draw createDraw(UUID groupId) {
         Optional<Group> optionalGroup = groupRepository.findById(groupId);
 
-        if (optionalGroup.isEmpty())
+        if (optionalGroup.isEmpty()) {
             throw new RuntimeException("Grupo não encontrado");
+        }
 
         Group group = optionalGroup.get();
 
-        if (group.isAlreadyDrawn())
+        if (group.isAlreadyDrawn()) {
             throw new RuntimeException("Sorteio já realizado para este grupo.");
+        }
 
         List<User> participants = new ArrayList<>(group.getParticipants());
+
+        if (participants.size() < 2) {
+            throw new RuntimeException("O grupo precisa ter pelo menos 2 participantes para realizar o sorteio.");
+        }
+
         Collections.shuffle(participants);
 
         Map<UUID, UUID> pairs = new HashMap<>();
@@ -43,11 +49,16 @@ public class DrawService {
 
         Draw draw = new Draw();
         draw.setGroup(group);
+        draw.setPairs(pairs);
         drawRepository.save(draw);
 
         group.setAlreadyDrawn(true);
         groupRepository.save(group);
 
         return draw;
+    }
+
+    public Optional<Draw> getDraw(UUID drawId) {
+        return drawRepository.findById(drawId);
     }
 }
