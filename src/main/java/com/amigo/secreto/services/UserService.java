@@ -2,6 +2,7 @@ package com.amigo.secreto.services;
 
 import com.amigo.secreto.models.User;
 import com.amigo.secreto.repositories.UserRepository;
+import com.amigo.secreto.services.exceptions.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,14 +27,21 @@ public class UserService {
     }
 
     public Optional<User> findById(UUID id) {
-        return userRepository.findById(id);
+        return Optional.ofNullable(userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + id + " não encontrado")));
     }
 
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return Optional.ofNullable(userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("Usuário de email " + email + " não encontrado")));
+    }
+
+    public User update(User user) {
+        return userRepository.save(user);
     }
 
     public void delete(UUID id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + id + " não encontrado"));
+
         userRepository.deleteById(id);
     }
 

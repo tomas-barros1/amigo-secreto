@@ -10,6 +10,7 @@ public class UserMapper {
         user.setName(dto.name());
         user.setEmail(dto.email());
         user.setPassword(dto.password());
+        user.setWishItem(dto.wishItem());
         return user;
     }
 

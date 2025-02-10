@@ -4,6 +4,8 @@ import com.amigo.secreto.models.Group;
 import com.amigo.secreto.models.User;
 import com.amigo.secreto.repositories.GroupRepository;
 import com.amigo.secreto.repositories.UserRepository;
+import com.amigo.secreto.services.exceptions.ResourceNotFoundException;
+import com.amigo.secreto.services.exceptions.UserAlreadyInGroupException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +24,11 @@ public class GroupService {
     }
 
     public Group create(Group group) {
+        User owner = userRepository.findById(group.getOwnerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + group.getOwnerId() + " não encontrado"));
+
+        group.getParticipants().add(owner);
+
         return groupRepository.save(group);
     }
 
@@ -30,7 +37,7 @@ public class GroupService {
     }
 
     public Optional<Group> findById(UUID id) {
-        return groupRepository.findById(id);
+        return Optional.ofNullable(groupRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Grupo de id " + id + " não encontrado")));
     }
 
     public Group update(Group group) {
@@ -38,24 +45,24 @@ public class GroupService {
     }
 
     public void deleteById(UUID id) {
-        groupRepository.delete(findById(id).get());
+        Group group = groupRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de id " + id + " não encontrado."));
+        groupRepository.delete(group);
     }
 
     public Group invite(UUID userId, UUID groupId) {
-        Optional<Group> optionalGroup = groupRepository.findById(groupId);
-        Optional<User> optionalUser = userRepository.findById(userId);
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de id " + groupId + " não encontrado."));
 
-        if (optionalGroup.isPresent()) {
-            Group group = optionalGroup.get();
-            if (!group.getParticipants().contains(optionalUser.get())) {
-                group.getParticipants().add(optionalUser.get());
-                return groupRepository.save(group);
-            } else {
-                throw new RuntimeException("Usuário já está no grupo.");
-            }
-        } else {
-            throw new RuntimeException("Grupo não encontrado.");
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + userId + " não encontrado."));
+
+        if (group.getParticipants().contains(user)) {
+            throw new UserAlreadyInGroupException("Usuário já está no grupo.");
         }
+
+        group.getParticipants().add(user);
+        return groupRepository.save(group);
     }
 
 }

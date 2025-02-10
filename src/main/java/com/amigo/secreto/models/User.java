@@ -28,6 +28,8 @@ public class User {
 
     private String password;
 
+    private String wishItem;
+
     @JsonIgnore
     @ManyToMany(mappedBy = "participants", fetch = FetchType.LAZY)
     private List<Group> groups = new ArrayList<>();
