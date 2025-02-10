@@ -1,6 +1,7 @@
 package com.amigo.secreto.services;
 
 import com.amigo.secreto.dtos.DrawResponseDTO;
+import com.amigo.secreto.mappers.DrawMapper;
 import com.amigo.secreto.models.Draw;
 import com.amigo.secreto.models.Group;
 import com.amigo.secreto.models.User;
@@ -12,7 +13,6 @@ import com.amigo.secreto.services.exceptions.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class DrawService {
@@ -24,37 +24,13 @@ public class DrawService {
         this.groupRepository = groupRepository;
     }
 
-    public Draw createDraw(UUID groupId) {
-        Optional<Group> optionalGroup = groupRepository.findById(groupId);
+    public DrawResponseDTO createDraw(UUID groupId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Grupo de id " + groupId + " não encontrado"));
 
-        if (optionalGroup.isEmpty()) {
-            throw new ResourceNotFoundException("Grupo de id " + groupId + " não encontrado");
-        }
+        validateDrawConditions(group);
 
-        Group group = optionalGroup.get();
-
-        if (group.isAlreadyDrawn()) {
-            throw new DrawAlreadyDoneException("Sorteio já realizado para o grupo de id " + groupId);
-        }
-
-        List<User> participants = new ArrayList<>(group.getParticipants());
-
-        if (participants.size() < 2) {
-            throw new DrawPairNumberException("O grupo precisa ter pelo menos 2 participantes para realizar o sorteio.");
-        }
-
-        if (participants.size() % 2 != 0) {
-            throw new DrawPairNumberException("Número de participantes precisa ser par");
-        }
-
-        Collections.shuffle(participants);
-
-        Map<UUID, UUID> pairs = new HashMap<>();
-        for (int i = 0; i < participants.size(); i++) {
-            UUID giver = participants.get(i).getId();
-            UUID receiver = participants.get((i + 1) % participants.size()).getId();
-            pairs.put(giver, receiver);
-        }
+        Map<UUID, UUID> pairs = generatePairs(group.getParticipants());
 
         Draw draw = new Draw();
         draw.setGroup(group);
@@ -64,33 +40,40 @@ public class DrawService {
         group.setAlreadyDrawn(true);
         groupRepository.save(group);
 
-        return draw;
+        return DrawMapper.toDrawResponseDTO(draw);
     }
 
-    public Optional<DrawResponseDTO> getDraw(UUID drawId) {
-        Optional<Draw> drawOptional = drawRepository.findById(drawId);
+    public DrawResponseDTO getDraw(UUID drawId) {
+        Draw draw = drawRepository.findById(drawId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sorteio de id " + drawId + " não encontrado"));
+        return DrawMapper.toDrawResponseDTO(draw);
+    }
 
-        if (drawOptional.isEmpty()) {
-            return Optional.empty();
+    private void validateDrawConditions(Group group) {
+        if (group.isAlreadyDrawn()) {
+            throw new DrawAlreadyDoneException("Sorteio já realizado para o grupo de id " + group.getId());
         }
 
-        Draw draw = drawOptional.get();
-        Map<UUID, UUID> pairs = draw.getPairs();
+        List<User> participants = group.getParticipants();
+        if (participants.size() < 2) {
+            throw new DrawPairNumberException("O grupo precisa ter pelo menos 2 participantes para realizar o sorteio.");
+        }
 
-        Map<String, String> pairsWithNames = pairs.entrySet().stream().collect(Collectors.toMap(
-                entry -> getUserNameById(entry.getKey(), draw),
-                entry -> getUserNameById(entry.getValue(), draw)
-        ));
-
-        DrawResponseDTO drawDTO = new DrawResponseDTO(draw.getId(), draw.getGroup(), pairsWithNames);
-        return Optional.of(drawDTO);
+        if (participants.size() % 2 != 0) {
+            throw new DrawPairNumberException("Número de participantes precisa ser par");
+        }
     }
 
-    private String getUserNameById(UUID userId, Draw draw) {
-        return draw.getGroup().getParticipants().stream()
-                .filter(user -> user.getId().equals(userId))
-                .map(User::getName)
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + userId + "não encontrado"));
+    private Map<UUID, UUID> generatePairs(List<User> participants) {
+        Collections.shuffle(participants);
+
+        Map<UUID, UUID> pairs = new HashMap<>();
+        for (int i = 0; i < participants.size(); i++) {
+            UUID giver = participants.get(i).getId();
+            UUID receiver = participants.get((i + 1) % participants.size()).getId();
+            pairs.put(giver, receiver);
+        }
+
+        return pairs;
     }
 }
