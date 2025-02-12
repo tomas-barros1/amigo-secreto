@@ -48,7 +48,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void create_ShouldReturnGroup_WhenOwnerExists() {
+    void createShouldReturnGroupWhenOwnerExists() {
         when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
         when(groupRepository.save(any(Group.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Retorna o mesmo objeto passado
 
@@ -62,7 +62,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void create_ShouldThrowResourceNotFoundException_WhenOwnerDoesNotExist() {
+    void createShouldThrowResourceNotFoundExceptionWhenOwnerDoesNotExist() {
         when(userRepository.findById(owner.getId())).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.create(group));
@@ -72,7 +72,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void findAll_ShouldReturnListOfGroups() {
+    void findAllShouldReturnListOfGroups() {
         List<Group> groups = Arrays.asList(group);
         when(groupRepository.findAll()).thenReturn(groups);
 
@@ -85,7 +85,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void findById_ShouldReturnGroup_WhenGroupExists() {
+    void findByIdShouldReturnGroupWhenGroupExists() {
         when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
 
         Optional<Group> result = groupService.findById(group.getId());
@@ -96,7 +96,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void findById_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
+    void findByIdShouldThrowResourceNotFoundExceptionWhenGroupDoesNotExist() {
         when(groupRepository.findById(group.getId())).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.findById(group.getId()));
@@ -105,7 +105,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void update_ShouldReturnUpdatedGroup() {
+    void updateShouldReturnUpdatedGroup() {
         when(groupRepository.save(any(Group.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Retorna o mesmo objeto passado
 
         Group updatedGroup = groupService.update(group);
@@ -116,7 +116,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void deleteById_ShouldDeleteGroup_WhenGroupExists() {
+    void deleteByIdShouldDeleteGroupWhenGroupExists() {
         when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
         doNothing().when(groupRepository).delete(group);
 
@@ -127,7 +127,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void deleteById_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
+    void deleteByIdShouldThrowResourceNotFoundExceptionWhenGroupDoesNotExist() {
         when(groupRepository.findById(group.getId())).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.deleteById(group.getId()));
@@ -137,7 +137,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void invite_ShouldAddUserToGroup_WhenUserAndGroupExist() {
+    void inviteShouldAddUserToGroupWhenUserAndGroupExist() {
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setName("Bob");
@@ -157,7 +157,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void invite_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
+    void inviteShouldThrowResourceNotFoundExceptionWhenGroupDoesNotExist() {
         UUID groupId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         when(groupRepository.findById(groupId)).thenReturn(Optional.empty());
@@ -170,7 +170,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void invite_ShouldThrowResourceNotFoundException_WhenUserDoesNotExist() {
+    void inviteShouldThrowResourceNotFoundExceptionWhenUserDoesNotExist() {
         UUID userId = UUID.randomUUID();
         when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
@@ -183,7 +183,7 @@ class GroupServiceTest {
     }
 
     @Test
-    void invite_ShouldThrowUserAlreadyInGroupException_WhenUserAlreadyInGroup() {
+    void inviteShouldThrowUserAlreadyInGroupExceptionWhenUserAlreadyInGroup() {
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setName("Bob");

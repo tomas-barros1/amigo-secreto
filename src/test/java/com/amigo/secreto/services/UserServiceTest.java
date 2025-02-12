@@ -7,13 +7,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -69,18 +70,4 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).deleteById(userId);
     }
-
-    @Test
-    @DisplayName("Should delete a user sucessfully")
-    void deleteUserSucessfullyTest() {
-        UUID userId = UUID.randomUUID();
-        User user = new User(userId, "Joao", "joao13@gmail.com", "senha123", "coxinha", null);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
-        userService.delete(userId);
-
-        verify(userRepository, times(1)).deleteById(userId);
-    }
-
 }

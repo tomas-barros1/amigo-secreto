@@ -3,7 +3,6 @@ package com.amigo.secreto.controllers;
 import com.amigo.secreto.dtos.GroupCreateRequestDTO;
 import com.amigo.secreto.mappers.GroupMapper;
 import com.amigo.secreto.models.Group;
-import com.amigo.secreto.models.User;
 import com.amigo.secreto.services.GroupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +38,7 @@ public class GroupController {
         return group.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/{groupId}/invite/{userId}")
+    @PostMapping("/{groupId}/add/{userId}")
     public ResponseEntity<Group> invite(@PathVariable UUID groupId, @PathVariable UUID userId) {
         return ResponseEntity.ok(groupService.invite(userId, groupId));
     }

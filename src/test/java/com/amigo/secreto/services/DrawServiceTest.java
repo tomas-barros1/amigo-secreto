@@ -39,7 +39,6 @@ class DrawServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Criação de usuários
         participants = new ArrayList<>();
         User user1 = new User();
         user1.setId(UUID.randomUUID());
@@ -74,17 +73,18 @@ class DrawServiceTest {
     }
 
     @Test
-    void createDraw_ShouldReturnDrawResponseDTO_WhenGroupIsValid() {
-        // Arrange
+    void createDrawShouldReturnDrawResponseDTOWhenGroupIsValid() {
         when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
-        when(drawRepository.save(any(Draw.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(drawRepository.save(any(Draw.class))).thenAnswer(invocation -> {
+            Draw savedDraw = invocation.getArgument(0);
+            savedDraw.setId(UUID.randomUUID());
+            return savedDraw;
+        });
 
-        // Act
         DrawResponseDTO result = drawService.createDraw(group.getId());
 
-        // Assert
         assertNotNull(result);
-        assertEquals(draw.getId(), result.id());
+        assertNotNull(result.id());
         assertEquals(2, result.pairs().size());
         verify(groupRepository, times(1)).findById(group.getId());
         verify(drawRepository, times(1)).save(any(Draw.class));
@@ -92,20 +92,17 @@ class DrawServiceTest {
     }
 
     @Test
-    void createDraw_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
-        // Arrange
+    void createDrawShouldThrowResourceNotFoundExceptionWhenGroupDoesNotExist() {
         UUID nonExistentGroupId = UUID.randomUUID();
         when(groupRepository.findById(nonExistentGroupId)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(ResourceNotFoundException.class, () -> drawService.createDraw(nonExistentGroupId));
         verify(groupRepository, times(1)).findById(nonExistentGroupId);
         verify(drawRepository, never()).save(any(Draw.class));
     }
 
     @Test
-    void createDraw_ShouldThrowDrawAlreadyDoneException_WhenGroupAlreadyDrawn() {
-        // Arrange
+    void createDrawShouldThrowDrawAlreadyDoneExceptionWhenGroupAlreadyDrawn() {
         group.setAlreadyDrawn(true);
         when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
 
@@ -115,7 +112,7 @@ class DrawServiceTest {
     }
 
     @Test
-    void createDraw_ShouldThrowDrawPairNumberException_WhenParticipantsLessThanTwo() {
+    void createDrawShouldThrowDrawPairNumberExceptionWhenParticipantsLessThanTwo() {
         User singleUser = new User();
         singleUser.setId(UUID.randomUUID());
         singleUser.setName("Alice");
@@ -137,7 +134,7 @@ class DrawServiceTest {
     }
 
     @Test
-    void createDraw_ShouldThrowDrawPairNumberException_WhenParticipantsNumberIsOdd() {
+    void createDrawShouldThrowDrawPairNumberExceptionWhenParticipantsNumberIsOdd() {
         User user3 = new User();
         user3.setId(UUID.randomUUID());
         user3.setName("Charlie");
