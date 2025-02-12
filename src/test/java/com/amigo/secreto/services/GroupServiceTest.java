@@ -4,59 +4,199 @@ import com.amigo.secreto.models.Group;
 import com.amigo.secreto.models.User;
 import com.amigo.secreto.repositories.GroupRepository;
 import com.amigo.secreto.repositories.UserRepository;
-import org.junit.jupiter.api.DisplayName;
+import com.amigo.secreto.services.exceptions.ResourceNotFoundException;
+import com.amigo.secreto.services.exceptions.UserAlreadyInGroupException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.*;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GroupServiceTest {
 
-    @InjectMocks
-    private GroupService groupService;
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private GroupRepository groupRepository;
 
-    @Mock
-    private UserRepository userRepository;
+    @InjectMocks
+    private GroupService groupService;
+
+    private User owner;
+    private Group group;
+
+    @BeforeEach
+    void setUp() {
+        owner = new User();
+        owner.setId(UUID.randomUUID());
+        owner.setName("Alice");
+        owner.setEmail("alice@example.com");
+
+        group = new Group();
+        group.setId(UUID.randomUUID());
+        group.setOwnerId(owner.getId());
+        group.setName("Amigo Secreto");
+        group.setParticipants(new ArrayList<>());
+    }
 
     @Test
-    @DisplayName("Should create a group successfully")
-    void createGroupSuccessfully() {
-        UUID ownerID = UUID.randomUUID();
-        UUID groupID = UUID.randomUUID();
-
-        User user = new User(ownerID, "Marcos", "marcos@gmail.com", "ahisdhi123", "Iphone 15", null);
-
-        Group group = new Group(groupID, "grupo", ownerID, false, LocalDateTime.now(), null, null);
-
-        when(userRepository.findById(ownerID)).thenReturn(Optional.of(user));
-        when(groupRepository.save(group)).thenReturn(group);
+    void create_ShouldReturnGroup_WhenOwnerExists() {
+        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+        when(groupRepository.save(any(Group.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Retorna o mesmo objeto passado
 
         Group createdGroup = groupService.create(group);
 
-        assertNotNull(createdGroup); // Ensure the group is not null
-        assertEquals("grupo", createdGroup.getName()); // Verify group name
-        assertTrue(createdGroup.getParticipants().contains(user)); // Verify that the user was added to participants
-        assertEquals(ownerID, createdGroup.getOwnerId()); // Verify that the owner id is correctly set
-
-        verify(userRepository, times(1)).findById(ownerID);
-        verify(groupRepository, times(1)).save(group); // Check if the groupRepository was called once
+        assertNotNull(createdGroup);
+        assertEquals(group.getId(), createdGroup.getId());
+        assertTrue(createdGroup.getParticipants().contains(owner)); // Verifica se o dono foi adicionado aos participantes
+        verify(userRepository, times(1)).findById(owner.getId());
+        verify(groupRepository, times(1)).save(any(Group.class));
     }
 
+    @Test
+    void create_ShouldThrowResourceNotFoundException_WhenOwnerDoesNotExist() {
+        when(userRepository.findById(owner.getId())).thenReturn(Optional.empty());
 
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.create(group));
+        assertEquals("Usuário de id " + owner.getId() + " não encontrado", exception.getMessage());
+        verify(userRepository, times(1)).findById(owner.getId());
+        verify(groupRepository, never()).save(any(Group.class));
+    }
 
+    @Test
+    void findAll_ShouldReturnListOfGroups() {
+        List<Group> groups = Arrays.asList(group);
+        when(groupRepository.findAll()).thenReturn(groups);
 
+        List<Group> result = groupService.findAll();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(group.getId(), result.get(0).getId());
+        verify(groupRepository, times(1)).findAll();
+    }
+
+    @Test
+    void findById_ShouldReturnGroup_WhenGroupExists() {
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
+
+        Optional<Group> result = groupService.findById(group.getId());
+
+        assertTrue(result.isPresent());
+        assertEquals(group.getId(), result.get().getId());
+        verify(groupRepository, times(1)).findById(group.getId());
+    }
+
+    @Test
+    void findById_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.findById(group.getId()));
+        assertEquals("Grupo de id " + group.getId() + " não encontrado", exception.getMessage());
+        verify(groupRepository, times(1)).findById(group.getId());
+    }
+
+    @Test
+    void update_ShouldReturnUpdatedGroup() {
+        when(groupRepository.save(any(Group.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Retorna o mesmo objeto passado
+
+        Group updatedGroup = groupService.update(group);
+
+        assertNotNull(updatedGroup);
+        assertEquals(group.getId(), updatedGroup.getId());
+        verify(groupRepository, times(1)).save(any(Group.class));
+    }
+
+    @Test
+    void deleteById_ShouldDeleteGroup_WhenGroupExists() {
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
+        doNothing().when(groupRepository).delete(group);
+
+        groupService.deleteById(group.getId());
+
+        verify(groupRepository, times(1)).findById(group.getId());
+        verify(groupRepository, times(1)).delete(group);
+    }
+
+    @Test
+    void deleteById_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.deleteById(group.getId()));
+        assertEquals("Grupo de id " + group.getId() + " não encontrado.", exception.getMessage());
+        verify(groupRepository, times(1)).findById(group.getId());
+        verify(groupRepository, never()).delete(any(Group.class));
+    }
+
+    @Test
+    void invite_ShouldAddUserToGroup_WhenUserAndGroupExist() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setName("Bob");
+        user.setEmail("bob@example.com");
+
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(groupRepository.save(any(Group.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Retorna o mesmo objeto passado
+
+        Group updatedGroup = groupService.invite(user.getId(), group.getId());
+
+        assertNotNull(updatedGroup);
+        assertTrue(updatedGroup.getParticipants().contains(user)); // Verifica se o usuário foi adicionado ao grupo
+        verify(groupRepository, times(1)).findById(group.getId());
+        verify(userRepository, times(1)).findById(user.getId());
+        verify(groupRepository, times(1)).save(any(Group.class));
+    }
+
+    @Test
+    void invite_ShouldThrowResourceNotFoundException_WhenGroupDoesNotExist() {
+        UUID groupId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        when(groupRepository.findById(groupId)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.invite(userId, groupId));
+        assertEquals("Grupo de id " + groupId + " não encontrado.", exception.getMessage());
+        verify(groupRepository, times(1)).findById(groupId);
+        verify(userRepository, never()).findById(userId);
+        verify(groupRepository, never()).save(any(Group.class));
+    }
+
+    @Test
+    void invite_ShouldThrowResourceNotFoundException_WhenUserDoesNotExist() {
+        UUID userId = UUID.randomUUID();
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.invite(userId, group.getId()));
+        assertEquals("Usuário de id " + userId + " não encontrado.", exception.getMessage());
+        verify(groupRepository, times(1)).findById(group.getId());
+        verify(userRepository, times(1)).findById(userId);
+        verify(groupRepository, never()).save(any(Group.class));
+    }
+
+    @Test
+    void invite_ShouldThrowUserAlreadyInGroupException_WhenUserAlreadyInGroup() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setName("Bob");
+        user.setEmail("bob@example.com");
+
+        group.getParticipants().add(user);
+        when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        UserAlreadyInGroupException exception = assertThrows(UserAlreadyInGroupException.class, () -> groupService.invite(user.getId(), group.getId()));
+        assertEquals("Usuário já está no grupo.", exception.getMessage());
+        verify(groupRepository, times(1)).findById(group.getId());
+        verify(userRepository, times(1)).findById(user.getId());
+        verify(groupRepository, never()).save(any(Group.class));
+    }
 }
