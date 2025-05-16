@@ -25,6 +25,7 @@ services:
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: secret
       JWT_SECRET: dfisahfdshqafd8i1284378124uadfhsdufashfudia@#
+      CORS_ALLOWEDORIGIN: http://localhost:5173
     ports:
       - "8080:8080"
 

@@ -1,0 +1,35 @@
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+
+# Maven
+target/
+
+# Gradle
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Teste de cobertura
+coverage/
+jacoco.exec
+
+# Outros
+*.class
+.env
+.vscode/
+out/
+*.swp
