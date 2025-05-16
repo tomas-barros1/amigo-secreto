@@ -104,7 +104,7 @@ public class AuthServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(testUser.getId().toString(), response.id());
-        assertEquals(testUser.getEmail(), response.username()); // Mudado para email em vez de username
+        assertEquals(testUser.getUsername(), response.username()); // Mudado para email em vez de username
         assertEquals(testToken, response.token());
         assertTrue(response.roles().contains("ROLE_USER"));
         assertEquals(1, response.roles().size());

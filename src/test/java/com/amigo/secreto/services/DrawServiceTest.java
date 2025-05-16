@@ -286,7 +286,7 @@ public class DrawServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(friendWithoutWishItem.getId(), result.friendId());
-        assertEquals(friendWithoutWishItem.getEmail(), result.friendUsername());
+        assertEquals(friendWithoutWishItem.getUsername(), result.friendUsername());
         assertEquals("Nenhum item desejado cadastrado", result.wishItem());
     }
 
