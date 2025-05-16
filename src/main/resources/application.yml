@@ -10,3 +10,6 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+cors:
+  allowedOrigin: ${ALLOWED_ORIGIN}
