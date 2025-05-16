@@ -67,7 +67,7 @@ public class UserService implements UserDetailsService {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return countParticipatingGroups(currentUser.getId());
+        return userRepository.countParticipatingGroups(currentUser.getId());
     }
 
     public int participatingDraws() {
@@ -76,6 +76,6 @@ public class UserService implements UserDetailsService {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return countParticipatingDraws(currentUser.getId());
+        return userRepository.countParticipatingDraws(currentUser.getId());
     }
 }

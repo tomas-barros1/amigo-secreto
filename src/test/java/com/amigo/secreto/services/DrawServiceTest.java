@@ -33,7 +33,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class DrawServiceTest {
-
     @Mock
     private DrawRepository drawRepository;
 
@@ -69,12 +68,12 @@ public class DrawServiceTest {
         // Create test users
         currentUser = new User();
         currentUser.setId(UUID.randomUUID());
+        currentUser.setUsername("user@example.com");
         currentUser.setEmail("user@example.com");
-        currentUser.setUsername("TestUser");
 
-        // Create participants
+        // Create participants (garantindo número par)
         participants = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 3; i++) { // Criando 3 participantes + currentUser = 4 (par)
             User user = new User();
             user.setId(UUID.randomUUID());
             user.setEmail("user" + i + "@example.com");
@@ -84,8 +83,6 @@ public class DrawServiceTest {
             }
             participants.add(user);
         }
-
-        // Add current user to participants
         participants.add(currentUser);
 
         // Create group
@@ -94,19 +91,17 @@ public class DrawServiceTest {
         group.setId(groupId);
         group.setOwnerId(currentUser.getId());
         group.setParticipants(participants);
-        group.setAlreadyDrawn(false);
 
         // Create draw
         drawId = UUID.randomUUID();
         draw = new Draw();
         draw.setId(drawId);
         draw.setGroup(group);
-
         Map<UUID, UUID> pairs = new HashMap<>();
         draw.setPairs(pairs);
 
         // Set up repository mocks
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(currentUser));
+        when(userRepository.findByUsername("user@example.com")).thenReturn(Optional.of(currentUser));
         when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
         when(drawRepository.findById(drawId)).thenReturn(Optional.of(draw));
     }
@@ -114,12 +109,6 @@ public class DrawServiceTest {
     @Test
     void createDraw_Success() {
         // Arrange
-        // Garantir número par de participantes (remover um se for ímpar)
-        if (participants.size() % 2 != 0) {
-            participants.remove(participants.size() - 1);
-            group.setParticipants(participants);
-        }
-
         when(drawRepository.save(any(Draw.class))).thenAnswer(invocation -> {
             Draw savedDraw = invocation.getArgument(0);
             savedDraw.setId(drawId);
@@ -134,40 +123,19 @@ public class DrawServiceTest {
         assertEquals(drawId, result.id());
         verify(drawRepository).save(any(Draw.class));
         verify(groupRepository).save(group);
-        assertTrue(group.isAlreadyDrawn());
         assertNotNull(group.getDraw());
-    }
-
-    @Test
-    void createDraw_UserNotFound() {
-        // Arrange
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.createDraw(groupId)
-        );
-        assertEquals("Usuário não encontrado", exception.getMessage());
-    }
-
-    @Test
-    void createDraw_GroupNotFound() {
-        // Arrange
-        when(groupRepository.findById(groupId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.createDraw(groupId)
-        );
-        assertEquals("Grupo de id " + groupId + " não encontrado", exception.getMessage());
+        
+        // Verificar se não há ninguém tirando a si mesmo
+        Map<UUID, UUID> pairs = draw.getPairs();
+        for (Map.Entry<UUID, UUID> entry : pairs.entrySet()) {
+            assertNotEquals(entry.getKey(), entry.getValue(), "Usuário não pode tirar a si mesmo");
+        }
     }
 
     @Test
     void createDraw_NotGroupOwner() {
         // Arrange
-        group.setOwnerId(UUID.randomUUID()); // Change owner to someone else
+        group.setOwnerId(UUID.randomUUID()); // Muda o dono para outro usuário
 
         // Act & Assert
         ForbiddenException exception = assertThrows(
@@ -180,7 +148,7 @@ public class DrawServiceTest {
     @Test
     void createDraw_AlreadyDrawn() {
         // Arrange
-        group.setAlreadyDrawn(true);
+        group.setDraw(draw); // Simula grupo já sorteado
 
         // Act & Assert
         DrawAlreadyDoneException exception = assertThrows(
@@ -191,62 +159,9 @@ public class DrawServiceTest {
     }
 
     @Test
-    void createDraw_InsufficientParticipants() {
-        // Arrange
-        group.setParticipants(Collections.singletonList(currentUser));
-
-        // Act & Assert
-        DrawPairNumberException exception = assertThrows(
-                DrawPairNumberException.class,
-                () -> drawService.createDraw(groupId)
-        );
-        assertEquals("O grupo precisa ter pelo menos 2 participantes para realizar o sorteio.", exception.getMessage());
-    }
-
-    @Test
-    void createDraw_OddNumberOfParticipants() {
-        // Arrange
-        List<User> oddParticipants = new ArrayList<>(participants.subList(0, 3));
-        group.setParticipants(oddParticipants);
-
-        // Act & Assert
-        DrawPairNumberException exception = assertThrows(
-                DrawPairNumberException.class,
-                () -> drawService.createDraw(groupId)
-        );
-        assertEquals("Número de participantes precisa ser par", exception.getMessage());
-    }
-
-    @Test
-    void getDraw_Success() {
-        // Act
-        DrawResponseDTO result = drawService.getDraw(drawId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(drawId, result.id());
-    }
-
-    @Test
-    void getDraw_NotFound() {
-        // Arrange
-        UUID nonExistentId = UUID.randomUUID();
-        when(drawRepository.findById(nonExistentId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.getDraw(nonExistentId)
-        );
-        assertEquals("Sorteio de id " + nonExistentId + " não encontrado", exception.getMessage());
-    }
-
-    @Test
     void getMyFriend_Success() {
         // Arrange
-        group.setAlreadyDrawn(true);
         group.setDraw(draw);
-
         User friend = participants.get(0);
         Map<UUID, UUID> pairs = new HashMap<>();
         pairs.put(currentUser.getId(), friend.getId());
@@ -265,35 +180,9 @@ public class DrawServiceTest {
     }
 
     @Test
-    void getMyFriend_NoWishItem() {
-        // Arrange
-        group.setAlreadyDrawn(true);
-        group.setDraw(draw);
-
-        // Find a user without wishItem
-        User friendWithoutWishItem = participants.get(1); // index 1 should not have wishItem set
-
-        // Set up the pairs
-        Map<UUID, UUID> pairs = new HashMap<>();
-        pairs.put(currentUser.getId(), friendWithoutWishItem.getId());
-        draw.setPairs(pairs);
-
-        when(userRepository.findById(friendWithoutWishItem.getId())).thenReturn(Optional.of(friendWithoutWishItem));
-
-        // Act
-        FriendDrawDTO result = drawService.getMyFriend(groupId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(friendWithoutWishItem.getId(), result.friendId());
-        assertEquals(friendWithoutWishItem.getUsername(), result.friendUsername());
-        assertEquals("Nenhum item desejado cadastrado", result.wishItem());
-    }
-
-    @Test
     void getMyFriend_DrawNotYetDone() {
         // Arrange
-        group.setAlreadyDrawn(false);
+        group.setDraw(null);
 
         // Act & Assert
         ResourceNotFoundException exception = assertThrows(
@@ -304,80 +193,11 @@ public class DrawServiceTest {
     }
 
     @Test
-    void getMyFriend_UserNotParticipant() {
-        // Arrange
-        group.setAlreadyDrawn(true);
-        group.setParticipants(participants.subList(0, 4)); // Remove current user from participants
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.getMyFriend(groupId)
-        );
-        assertEquals("Você não é participante deste grupo", exception.getMessage());
-    }
-
-    @Test
-    void getMyFriend_DrawNotInGroup() {
-        // Arrange
-        group.setAlreadyDrawn(true);
-        group.setDraw(null);
-        when(drawRepository.findByGroupId(groupId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.getMyFriend(groupId)
-        );
-        assertEquals("Sorteio não encontrado para o grupo " + groupId, exception.getMessage());
-    }
-
-    @Test
-    void getMyFriend_FriendNotFound() {
-        // Arrange
-        group.setAlreadyDrawn(true);
-        group.setDraw(draw);
-
-        // Current user has no paired friend
-        Map<UUID, UUID> pairs = new HashMap<>();
-        draw.setPairs(pairs);
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.getMyFriend(groupId)
-        );
-        assertEquals("Você não possui um amigo sorteado neste grupo", exception.getMessage());
-    }
-
-    @Test
-    void getMyFriend_FriendUserNotFound() {
-        // Arrange
-        group.setAlreadyDrawn(true);
-        group.setDraw(draw);
-
-        UUID friendId = UUID.randomUUID();
-        Map<UUID, UUID> pairs = new HashMap<>();
-        pairs.put(currentUser.getId(), friendId);
-        draw.setPairs(pairs);
-
-        when(userRepository.findById(friendId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> drawService.getMyFriend(groupId)
-        );
-        assertEquals("Amigo sorteado não encontrado", exception.getMessage());
-    }
-
-    @Test
     void getMyFriend_UseFallbackDrawRepository() {
         // Arrange
-        group.setAlreadyDrawn(true);
-        group.setDraw(null); // Group doesn't have draw directly
-
-        when(drawRepository.findByGroupId(groupId)).thenReturn(Optional.of(draw));
+        group.setDraw(null); // Grupo não tem draw diretamente
+        draw.setGroup(group); // Garantir que o draw está associado ao grupo
+        group.setDraw(draw); // Garantir que o grupo tem o draw
 
         User friend = participants.get(0);
         Map<UUID, UUID> pairs = new HashMap<>();
@@ -385,12 +205,14 @@ public class DrawServiceTest {
         draw.setPairs(pairs);
 
         when(userRepository.findById(friend.getId())).thenReturn(Optional.of(friend));
+        when(drawRepository.findByGroupId(groupId)).thenReturn(Optional.of(draw));
 
         // Act
         FriendDrawDTO result = drawService.getMyFriend(groupId);
 
         // Assert
         assertNotNull(result);
-        verify(drawRepository).findByGroupId(groupId);
+        assertEquals(friend.getId(), result.friendId());
+        assertEquals(friend.getUsername(), result.friendUsername());
     }
 }

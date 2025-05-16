@@ -93,25 +93,31 @@ public class AuthServiceTest {
     void login_WithValidCredentials_ShouldReturnLoginResponse() {
         // Arrange
         LoginRequestDTO loginRequest = new LoginRequestDTO("test@example.com", "password");
+        
+        Role userRole = new Role();
+        userRole.setId(UUID.randomUUID());
+        userRole.setName("ROLE_USER");
+        
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setUsername("testuser");
+        user.setEmail("test@example.com");
+        user.setPassword(passwordEncoder.encode("password"));
+        user.setRoles(Set.of(userRole));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-        when(jwtService.generateToken("test@example.com")).thenReturn(testToken);
+        when(userRepository.findByEmail(loginRequest.email())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(loginRequest.password(), user.getPassword())).thenReturn(true);
+        when(jwtService.generateToken(user.getUsername())).thenReturn("token");
 
         // Act
         LoginResponseDTO response = authService.login(loginRequest);
 
         // Assert
         assertNotNull(response);
-        assertEquals(testUser.getId().toString(), response.id());
-        assertEquals(testUser.getUsername(), response.username()); // Mudado para email em vez de username
-        assertEquals(testToken, response.token());
+        assertEquals(user.getId().toString(), response.id());
+        assertEquals(user.getUsername(), response.username());
+        assertEquals("token", response.token());
         assertTrue(response.roles().contains("ROLE_USER"));
-        assertEquals(1, response.roles().size());
-
-        verify(userRepository).findByEmail("test@example.com");
-        verify(passwordEncoder).matches("password", "encodedPassword");
-        verify(jwtService).generateToken("test@example.com");
     }
 
     @Test

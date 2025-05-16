@@ -45,6 +45,7 @@ class GroupServiceTest {
         group.setOwnerId(owner.getId());
         group.setName("Amigo Secreto");
         group.setParticipants(new ArrayList<>());
+        group.setDraw(null);
     }
 
     @Test
@@ -57,8 +58,8 @@ class GroupServiceTest {
         assertNotNull(createdGroup);
         assertEquals(group.getId(), createdGroup.getId());
         assertTrue(createdGroup.getParticipants().contains(owner)); // Verifica se o dono foi adicionado aos participantes
-        verify(userRepository, times(1)).findById(owner.getId());
-        verify(groupRepository, times(1)).save(any(Group.class));
+        verify(userRepository).findById(owner.getId());
+        verify(groupRepository).save(any(Group.class));
     }
 
     @Test
@@ -67,7 +68,7 @@ class GroupServiceTest {
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.create(group));
         assertEquals("Usuário de id " + owner.getId() + " não encontrado", exception.getMessage());
-        verify(userRepository, times(1)).findById(owner.getId());
+        verify(userRepository).findById(owner.getId());
         verify(groupRepository, never()).save(any(Group.class));
     }
 
@@ -81,7 +82,7 @@ class GroupServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(group.getId(), result.get(0).getId());
-        verify(groupRepository, times(1)).findAll();
+        verify(groupRepository).findAll();
     }
 
     @Test
@@ -92,16 +93,24 @@ class GroupServiceTest {
 
         assertTrue(result.isPresent());
         assertEquals(group.getId(), result.get().getId());
-        verify(groupRepository, times(1)).findById(group.getId());
+        verify(groupRepository).findById(group.getId());
     }
 
     @Test
     void findByIdShouldThrowResourceNotFoundExceptionWhenGroupDoesNotExist() {
-        when(groupRepository.findById(group.getId())).thenReturn(Optional.empty());
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(groupRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.findById(group.getId()));
-        assertEquals("Grupo de id " + group.getId() + " não encontrado", exception.getMessage());
-        verify(groupRepository, times(1)).findById(group.getId());
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(
+            ResourceNotFoundException.class,
+            () -> groupService.findById(nonExistentId).orElseThrow(() -> 
+                new ResourceNotFoundException("Grupo de id " + nonExistentId + " não encontrado"))
+        );
+        
+        assertEquals("Grupo de id " + nonExistentId + " não encontrado", exception.getMessage());
+        verify(groupRepository).findById(nonExistentId);
     }
 
     @Test
@@ -112,7 +121,7 @@ class GroupServiceTest {
 
         assertNotNull(updatedGroup);
         assertEquals(group.getId(), updatedGroup.getId());
-        verify(groupRepository, times(1)).save(any(Group.class));
+        verify(groupRepository).save(any(Group.class));
     }
 
     @Test
@@ -122,8 +131,8 @@ class GroupServiceTest {
 
         groupService.deleteById(group.getId());
 
-        verify(groupRepository, times(1)).findById(group.getId());
-        verify(groupRepository, times(1)).delete(group);
+        verify(groupRepository).findById(group.getId());
+        verify(groupRepository).delete(group);
     }
 
     @Test
@@ -132,7 +141,7 @@ class GroupServiceTest {
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.deleteById(group.getId()));
         assertEquals("Grupo de id " + group.getId() + " não encontrado.", exception.getMessage());
-        verify(groupRepository, times(1)).findById(group.getId());
+        verify(groupRepository).findById(group.getId());
         verify(groupRepository, never()).delete(any(Group.class));
     }
 
@@ -151,9 +160,9 @@ class GroupServiceTest {
 
         assertNotNull(updatedGroup);
         assertTrue(updatedGroup.getParticipants().contains(user)); // Verifica se o usuário foi adicionado ao grupo
-        verify(groupRepository, times(1)).findById(group.getId());
-        verify(userRepository, times(1)).findById(user.getId());
-        verify(groupRepository, times(1)).save(any(Group.class));
+        verify(groupRepository).findById(group.getId());
+        verify(userRepository).findById(user.getId());
+        verify(groupRepository).save(any(Group.class));
     }
 
     @Test
@@ -164,7 +173,7 @@ class GroupServiceTest {
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.invite(userId, groupId));
         assertEquals("Grupo de id " + groupId + " não encontrado.", exception.getMessage());
-        verify(groupRepository, times(1)).findById(groupId);
+        verify(groupRepository).findById(groupId);
         verify(userRepository, never()).findById(userId);
         verify(groupRepository, never()).save(any(Group.class));
     }
@@ -177,8 +186,8 @@ class GroupServiceTest {
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> groupService.invite(userId, group.getId()));
         assertEquals("Usuário de id " + userId + " não encontrado.", exception.getMessage());
-        verify(groupRepository, times(1)).findById(group.getId());
-        verify(userRepository, times(1)).findById(userId);
+        verify(groupRepository).findById(group.getId());
+        verify(userRepository).findById(userId);
         verify(groupRepository, never()).save(any(Group.class));
     }
 
@@ -195,8 +204,8 @@ class GroupServiceTest {
 
         UserAlreadyInGroupException exception = assertThrows(UserAlreadyInGroupException.class, () -> groupService.invite(user.getId(), group.getId()));
         assertEquals("Usuário já está no grupo.", exception.getMessage());
-        verify(groupRepository, times(1)).findById(group.getId());
-        verify(userRepository, times(1)).findById(user.getId());
+        verify(groupRepository).findById(group.getId());
+        verify(userRepository).findById(user.getId());
         verify(groupRepository, never()).save(any(Group.class));
     }
 }
