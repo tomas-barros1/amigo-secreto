@@ -38,7 +38,7 @@ public class UserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username).
+        return userRepository.findByUsername(username).
                 orElseThrow(() -> new UsernameNotFoundException("Usuário " + username + " não encontrado"));
     }
 
@@ -56,7 +56,7 @@ public class UserService implements UserDetailsService {
     public int participatingGroups() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
-        User currentUser = userRepository.findByEmail(currentUsername)
+        User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         return currentUser.getGroups().size();
@@ -65,7 +65,7 @@ public class UserService implements UserDetailsService {
     public int participatingDraws() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
-        User currentUser = userRepository.findByEmail(currentUsername)
+        User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         return (int) currentUser.getGroups().stream()

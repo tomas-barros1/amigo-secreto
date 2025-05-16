@@ -34,7 +34,7 @@ public class DrawService {
     public DrawResponseDTO createDraw(UUID groupId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
-        User currentUser = userRepository.findByEmail(currentUsername)
+        User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         Group group = groupRepository.findById(groupId)
@@ -70,7 +70,7 @@ public class DrawService {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
-        User currentUser = userRepository.findByEmail(currentUsername)
+        User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         Group group = groupRepository.findById(groupId)

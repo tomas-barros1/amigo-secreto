@@ -45,7 +45,7 @@ public class AuthService {
             throw new BadCredentialsException("Usuário ou senha inválidos");
         }
 
-        String token = this.jwtService.generateToken(user.getEmail());
+        String token = this.jwtService.generateToken(user.getUsername());
         return new LoginResponseDTO(user.getId().toString(), user.getUsername(), token, user.getRoles().stream().map(Role::getName).toList());
     }
 
