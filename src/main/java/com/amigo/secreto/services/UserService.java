@@ -53,13 +53,21 @@ public class UserService implements UserDetailsService {
         userRepository.deleteById(id);
     }
 
+    public int countParticipatingGroups(UUID userId) {
+        return userRepository.countParticipatingGroups(userId);
+    }
+
+    public int countParticipatingDraws(UUID userId) {
+        return userRepository.countParticipatingDraws(userId);
+    }
+
     public int participatingGroups() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return currentUser.getGroups().size();
+        return countParticipatingGroups(currentUser.getId());
     }
 
     public int participatingDraws() {
@@ -68,9 +76,6 @@ public class UserService implements UserDetailsService {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return (int) currentUser.getGroups().stream()
-                .filter(Group::isAlreadyDrawn)
-                .count();
+        return countParticipatingDraws(currentUser.getId());
     }
-
 }

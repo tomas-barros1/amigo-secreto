@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class DrawService {
@@ -53,7 +54,6 @@ public class DrawService {
         draw.setPairs(pairs);
         drawRepository.save(draw);
 
-        group.setAlreadyDrawn(true);
         group.setDraw(draw);
         groupRepository.save(group);
 
@@ -86,11 +86,9 @@ public class DrawService {
             throw new ResourceNotFoundException("Você não é participante deste grupo");
         }
 
-        Draw draw = group.getDraw();
-        if (draw == null) {
-            draw = drawRepository.findByGroupId(groupId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Sorteio não encontrado para o grupo " + groupId));
-        }
+        Draw draw = Optional.ofNullable(group.getDraw())
+                .orElseGet(() -> drawRepository.findByGroupId(groupId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Sorteio não encontrado para o grupo " + groupId)));
 
         Map<UUID, UUID> pairs = draw.getPairs();
         UUID friendId = pairs.get(currentUser.getId());
@@ -110,7 +108,7 @@ public class DrawService {
     }
 
     private void validateDrawConditions(Group group) {
-        if (group.isAlreadyDrawn()) {
+        if (group.getDraw() != null) {
             throw new DrawAlreadyDoneException("Sorteio já realizado para o grupo de id " + group.getId());
         }
 
@@ -125,13 +123,25 @@ public class DrawService {
     }
 
     private Map<UUID, UUID> generatePairs(List<User> participants) {
-        Collections.shuffle(participants);
-
         Map<UUID, UUID> pairs = new HashMap<>();
-        for (int i = 0; i < participants.size(); i++) {
-            UUID giver = participants.get(i).getId();
-            UUID receiver = participants.get((i + 1) % participants.size()).getId();
-            pairs.put(giver, receiver);
+        List<UUID> receivers = participants.stream().map(User::getId).collect(Collectors.toList());
+        List<UUID> givers = new ArrayList<>(receivers);
+
+        Random random = new Random();
+        for (User participant : participants) {
+            UUID giverId = participant.getId();
+            int index;
+            do {
+                index = random.nextInt(receivers.size());
+            } while (receivers.get(index).equals(giverId) && receivers.size() > 1);
+
+            pairs.put(giverId, receivers.get(index));
+            receivers.remove(index);
+        }
+
+        // Validar se não há ninguém tirando a si mesmo no último caso
+        if (pairs.entrySet().stream().anyMatch(e -> e.getKey().equals(e.getValue()))) {
+            return generatePairs(participants); // Tentar novamente se houver match próprio
         }
 
         return pairs;

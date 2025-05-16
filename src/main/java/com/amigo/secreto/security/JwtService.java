@@ -16,6 +16,9 @@ public class JwtService {
 
     @Value("${jwt.secret}")
     private String secret;
+    
+    @Value("${jwt.expiration:7200000}") // 2 horas por padrão
+    private long expiration;
 
     private SecretKey getSigninKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
@@ -25,7 +28,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 2))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigninKey())
                 .compact();
     }

@@ -37,7 +37,7 @@ public class GroupService {
     }
 
     public Optional<Group> findById(UUID id) {
-        return Optional.ofNullable(groupRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Grupo de id " + id + " não encontrado")));
+        return groupRepository.findById(id);
     }
 
     public Group update(Group group) {

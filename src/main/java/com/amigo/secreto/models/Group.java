@@ -27,8 +27,6 @@ public class Group {
 
     private UUID ownerId;
 
-    private boolean alreadyDrawn = false;
-
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToMany
@@ -41,4 +39,8 @@ public class Group {
 
     @OneToOne(mappedBy = "group", cascade = CascadeType.ALL)
     private Draw draw;
+
+    public boolean isAlreadyDrawn() {
+        return draw != null;
+    }
 }
