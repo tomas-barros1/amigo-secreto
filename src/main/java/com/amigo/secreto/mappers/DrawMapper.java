@@ -24,7 +24,7 @@ public class DrawMapper {
     private static String getUserNameById(UUID userId, Draw draw) {
         return draw.getGroup().getParticipants().stream()
                 .filter(user -> user.getId().equals(userId))
-                .map(User::getName)
+                .map(User::getUsername)
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + userId + " não encontrado"));
     }

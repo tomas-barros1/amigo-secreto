@@ -26,31 +26,16 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Test
-    @DisplayName("Should create a user successfully")
-    void userCreteTest() {
-        User user = new User(UUID.randomUUID(), "Joao", "joao13@gmail.com", "senha123", "coxinhas", null);
-
-        when(userRepository.save(user)).thenReturn(user);
-
-        userService.create(user);
-
-        assertNotNull(user);
-        assertEquals("Joao", user.getName());
-        assertEquals("joao13@gmail.com", user.getEmail());
-    }
-
-    @Test
     @DisplayName("Update user successfully")
     void userUpdateTest() {
         UUID userId = UUID.randomUUID();
-        User updatedUser = new User(userId, "João Silva", "joao13@gmail.com", "novaSenha", "pastel", null);
+        User updatedUser = new User(userId, "João Silva", "joao13@gmail.com", "novaSenha", "pastel", null, null);
 
         when(userRepository.save(updatedUser)).thenReturn(updatedUser);
 
         User result = userService.update(updatedUser);
 
         assertNotNull(result);
-        assertEquals("João Silva", result.getName());
         assertEquals("novaSenha", result.getPassword());
         assertEquals("joao13@gmail.com", result.getEmail());
         assertEquals("pastel", result.getWishItem());
@@ -62,7 +47,7 @@ class UserServiceTest {
     @DisplayName("Should delete a user successfully")
     void userDeleteTest() {
         UUID userId = UUID.randomUUID();
-        User user = new User(userId, "Joao", "joao13@gmail.com", "senha123", "coxinha", null);
+        User user = new User(userId, "Joao", "joao13@gmail.com", "senha123", "coxinha", null, null);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 

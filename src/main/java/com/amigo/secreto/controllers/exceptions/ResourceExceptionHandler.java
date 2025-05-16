@@ -1,13 +1,11 @@
 package com.amigo.secreto.controllers.exceptions;
 
-import com.amigo.secreto.services.exceptions.DrawAlreadyDoneException;
-import com.amigo.secreto.services.exceptions.DrawPairNumberException;
-import com.amigo.secreto.services.exceptions.ResourceNotFoundException;
-import com.amigo.secreto.services.exceptions.UserAlreadyInGroupException;
+import com.amigo.secreto.services.exceptions.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -87,5 +85,65 @@ public class ResourceExceptionHandler {
                 .timestamp(Instant.now())
                 .build();
         return ResponseEntity.status(sqlException.getStatus()).body(sqlException);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<BaseException> handleBadCredentials(BadCredentialsException e, HttpServletRequest request) {
+        BaseException badCredentials = BaseException.builder()
+                .error("Credenciais inválidas")
+                .path(request.getRequestURI())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .message(e.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(badCredentials.getStatus()).body(badCredentials);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<BaseException> handleIllegalArgument(IllegalArgumentException e, HttpServletRequest request) {
+        BaseException illegalArgument = BaseException.builder()
+                .error("Argumento inválido")
+                .path(request.getRequestURI())
+                .status(HttpStatus.CONFLICT.value())
+                .message(e.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(illegalArgument.getStatus()).body(illegalArgument);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<BaseException> handleAccessDenied(AccessDeniedException e, HttpServletRequest request) {
+        BaseException accessDenied = BaseException.builder()
+                .error("Acesso negado")
+                .path(request.getRequestURI())
+                .status(HttpStatus.FORBIDDEN.value())
+                .message(e.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(accessDenied.getStatus()).body(accessDenied);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<BaseException> handleForbidden(ForbiddenException e, HttpServletRequest request) {
+        BaseException exception = BaseException.builder()
+                .error("Acesso proibido")
+                .path(request.getRequestURI())
+                .status(HttpStatus.FORBIDDEN.value())
+                .message(e.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(exception.getStatus()).body(exception);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<BaseException> handleGenericException(Exception e, HttpServletRequest request) {
+        BaseException exception = BaseException.builder()
+                .error("Erro interno do servidor")
+                .path(request.getRequestURI())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message("Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.")
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(exception.getStatus()).body(exception);
     }
 }

@@ -2,9 +2,10 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/amigosecreto
-    username: postgres
+    username: root
     password: root
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+  jwt:
+    secret: dfisahfdshqafd8i1284378124uadfhsdufashfudia@#

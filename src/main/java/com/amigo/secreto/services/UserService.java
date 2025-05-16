@@ -1,8 +1,14 @@
 package com.amigo.secreto.services;
 
+import com.amigo.secreto.models.Group;
 import com.amigo.secreto.models.User;
 import com.amigo.secreto.repositories.UserRepository;
 import com.amigo.secreto.services.exceptions.ResourceNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,16 +16,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private UserRepository userRepository;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-    }
-
-    public User create(User user) {
-        return userRepository.save(user);
     }
 
     public List<User> findAll() {
@@ -34,6 +36,12 @@ public class UserService {
         return Optional.ofNullable(userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("Usuário de email " + email + " não encontrado")));
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userRepository.findByEmail(username).
+                orElseThrow(() -> new UsernameNotFoundException("Usuário " + username + " não encontrado"));
+    }
+
     public User update(User user) {
         return userRepository.save(user);
     }
@@ -43,6 +51,26 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário de id " + id + " não encontrado"));
 
         userRepository.deleteById(id);
+    }
+
+    public int participatingGroups() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByEmail(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        return currentUser.getGroups().size();
+    }
+
+    public int participatingDraws() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByEmail(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        return (int) currentUser.getGroups().stream()
+                .filter(Group::isAlreadyDrawn)
+                .count();
     }
 
 }

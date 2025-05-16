@@ -37,7 +37,7 @@ class GroupServiceTest {
     void setUp() {
         owner = new User();
         owner.setId(UUID.randomUUID());
-        owner.setName("Alice");
+        owner.setUsername("Alice");
         owner.setEmail("alice@example.com");
 
         group = new Group();
@@ -140,7 +140,7 @@ class GroupServiceTest {
     void inviteShouldAddUserToGroupWhenUserAndGroupExist() {
         User user = new User();
         user.setId(UUID.randomUUID());
-        user.setName("Bob");
+        user.setUsername("Bob");
         user.setEmail("bob@example.com");
 
         when(groupRepository.findById(group.getId())).thenReturn(Optional.of(group));
@@ -186,7 +186,7 @@ class GroupServiceTest {
     void inviteShouldThrowUserAlreadyInGroupExceptionWhenUserAlreadyInGroup() {
         User user = new User();
         user.setId(UUID.randomUUID());
-        user.setName("Bob");
+        user.setUsername("Bob");
         user.setEmail("bob@example.com");
 
         group.getParticipants().add(user);
