@@ -30,13 +30,24 @@ como cadastro de grupos, participantes, sorteio e consulta dos pares sorteados.
   cd amigo-secreto-api
 ```
 
-2. Configure o banco de dados no `application.properties`:
+2. Configure o banco de dados no `application.yml`:
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/amigosecreto
-spring.datasource.username=seu_usuario
-spring.datasource.password=sua_senha
-spring.jpa.hibernate.ddl-auto=update
+```yml
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+jwt:
+  secret: ${JWT_SECRET}
+
+cors:
+  allowedOrigin: ${ALLOWED_ORIGIN}
 ```
 
 3. Rode a aplicação:
